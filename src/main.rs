@@ -1,7 +1,7 @@
 use std::io;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+// use std::time::{Duration, Instant};
 
 const NUM_THREADS: usize = 4;
 
@@ -18,7 +18,7 @@ fn mine_block(
     should_continue: Arc<Mutex<bool>>,
 ) {
     loop {
-        let candidate = generate_random_hash();
+        let mut candidate =   generate_random_hash();
         let block_number = {
             let mut counter = block_counter.lock().unwrap();
             *counter += 1;
@@ -32,7 +32,7 @@ fn mine_block(
             return;
         }
 
-        if candidate.starts_with(target_prefix) {
+        if candidate.starts_with(target_prefix)  && candidate.ends_with("0"){
             let mut result = result.lock().unwrap();
             *result = Some(candidate);
             println!(
