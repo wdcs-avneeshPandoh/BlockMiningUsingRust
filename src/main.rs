@@ -6,7 +6,6 @@ use std::thread;
 const NUM_THREADS: usize = 4;
 
 fn generate_random_hash() -> String {
-
     use rand::Rng;
     rand::thread_rng().gen::<u64>().to_string()
 }
@@ -17,28 +16,46 @@ fn mine_block(
     block_counter: Arc<Mutex<usize>>,
     should_continue: Arc<Mutex<bool>>,
 ) {
+    let mut active: bool = true;
     loop {
-        let mut candidate =   generate_random_hash();
-        let block_number = {
-            let mut counter = block_counter.lock().unwrap();
-            *counter += 1;
-            *counter
-        };
+        loop {
+            let mut candidate = generate_random_hash();
+            let block_number = {
+                let mut counter = block_counter.lock().unwrap();
+                *counter += 1;
+                *counter
+            };
 
-        println!("Mining block #{} with hash: {}...", block_number, candidate);
-        let continue_mining = *should_continue.lock().unwrap();
-        if !continue_mining {
-            println!("Mining stopped by user.");
-            return;
+            println!("Mining block #{} with hash: {}...", block_number, candidate);
+            let continue_mining = *should_continue.lock().unwrap();
+            if !continue_mining {
+                println!("Mining stopped by user.");
+                return;
+            }
+
+            if candidate.starts_with(target_prefix) && candidate.ends_with("0") {
+                let mut result = result.lock().unwrap();
+                *result = Some(candidate);
+                println!(
+                    "Block mined successfully! Hash: {}",
+                    result.as_ref().unwrap()
+                );
+                break;
+            }
         }
-
-        if candidate.starts_with(target_prefix)  && candidate.ends_with("0"){
-            let mut result = result.lock().unwrap();
-            *result = Some(candidate);
-            println!(
-                "Block mined successfully! Hash: {}",
-                result.as_ref().unwrap()
-            );
+        if active {
+            println! {"do you want to mine more blocks? (y/n) "};
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).expect("fail");
+            let input = input.trim().to_lowercase() == "y";
+            if input {
+                active = true;
+            }
+            if !input {
+                active = false;
+            }
+        }
+        if !active {
             break;
         }
     }
@@ -69,7 +86,7 @@ fn main() {
         let should_continue_clone = Arc::clone(&should_continue);
         let handle = thread::spawn(move || {
             mine_block(
-                "0000",
+                "100",
                 result_clone,
                 block_counter_clone,
                 should_continue_clone,
